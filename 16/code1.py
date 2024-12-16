@@ -47,32 +47,34 @@ def find_edges(world, nodes):
         for j in range(i + 1, len(nodes)):
             if nodes[i][0] == nodes[j][0]:
                 is_edge = True
+                d = nodes[j][1] - nodes[i][1]
                 for t in range(nodes[i][1] + 1, nodes[j][1]):
                     if world[nodes[i][0]][t] == '#' or [nodes[i][0], t] in nodes:
                         is_edge = False
                 if is_edge:
                     if i in edges.keys():
-                        edges[i].append(j)
+                        edges[i].append([j, d])
                     else: 
-                        edges[i] = [j]
+                        edges[i] = [[j, d]]
                     if j in edges.keys():
-                        edges[j].append(i)
+                        edges[j].append([i, d])
                     else: 
-                        edges[j] = [i]
+                        edges[j] = [[i, d]]
             if nodes[i][1] == nodes[j][1]:
                 is_edge = True
+                d = nodes[j][0] - nodes[i][0]
                 for t in range(nodes[i][0] + 1, nodes[j][0]):
                     if world[t][nodes[i][1]] == '#' or [t, nodes[i][1]] in nodes:
                         is_edge = False
                 if is_edge:
                     if i in edges.keys():
-                        edges[i].append(j)
+                        edges[i].append([j, d])
                     else: 
-                        edges[i] = [j]
+                        edges[i] = [[j, d]]
                     if j in edges.keys():
-                        edges[j].append(i)
+                        edges[j].append([i, d])
                     else: 
-                        edges[j] = [i]
+                        edges[j] = [[i, d]]
     return edges
                     
 world, e_ij, s_ij = read_data()
