@@ -7,10 +7,13 @@ def read_data():
     world = []
     e = [0, 0]
     s = [0, 0]
-    with open("./data00", 'r') as fp:
+    with open("./data1", 'r') as fp:
         i = 0
         for line in fp.readlines():
-            world.append(line.strip())
+            row = []
+            for c in line.strip():
+                row.append(c)
+            world.append(row)
             if 'E' in line:
                 e[0:2] = [i, line.index('E')]
             if 'S' in line:
@@ -25,74 +28,102 @@ def is_node(world, i, j):
             or (world[i - 1][j] != '#' and world[i][j + 1] != '#') \
             or (world[i + 1][j] != '#' and world[i][j - 1] != '#') \
             or (world[i + 1][j] != '#' and world[i][j + 1] != '#') \
+            or ([world[i - 1][j], world[i + 1][j], world[i][j - 1], world[i][j + 1]].count("3") == 0) \
         )
 
 def make_graph(world, e_ij, s_ij):
     nodes = []
+    edges = {}
     e_id = -1
     s_id = -1
     for i in range(1, len(world) - 1):
         for j in range(1, len(world[0]) - 1):
             if is_node(world, i, j):
+                node_id = len(nodes)
                 if i == e_ij[0] and j == e_ij[1]:
-                    e_id = len(nodes)
+                    e_id = node_id
                 if i == s_ij[0] and j == s_ij[1]:
-                    s_id = len(nodes)
+                    s_id = node_id
                 nodes.append([i, j])
-    return nodes, e_id, s_id
+                edges[node_id] = []
 
-def find_edges(world, nodes):
-    edges = {}
-    for i in range(len(nodes)):
-        for j in range(i + 1, len(nodes)):
-            if nodes[i][0] == nodes[j][0]:
-                is_edge = True
-                d = nodes[j][1] - nodes[i][1]
-                for t in range(nodes[i][1] + 1, nodes[j][1]):
-                    if world[nodes[i][0]][t] == '#' or [nodes[i][0], t] in nodes:
-                        is_edge = False
-                if is_edge:
-                    if i in edges.keys():
-                        edges[i].append([j, d])
-                    else: 
-                        edges[i] = [[j, d]]
-                    if j in edges.keys():
-                        edges[j].append([i, d])
-                    else: 
-                        edges[j] = [[i, d]]
-            if nodes[i][1] == nodes[j][1]:
-                is_edge = True
-                d = nodes[j][0] - nodes[i][0]
-                for t in range(nodes[i][0] + 1, nodes[j][0]):
-                    if world[t][nodes[i][1]] == '#' or [t, nodes[i][1]] in nodes:
-                        is_edge = False
-                if is_edge:
-                    if i in edges.keys():
-                        edges[i].append([j, d])
-                    else: 
-                        edges[i] = [[j, d]]
-                    if j in edges.keys():
-                        edges[j].append([i, d])
-                    else: 
-                        edges[j] = [[i, d]]
-    return edges
-                    
+    for node_id in range(len(nodes)):
+        i = nodes[node_id][0]
+        j = nodes[node_id][1]
+        for ii in range(i - 1, 0, -1):
+            if is_node(world, ii, j):
+                edges[node_id].append([nodes.index([ii, j]), i - ii, "^"])
+                break
+            elif world[ii][j] == "#":
+                break
+        for ii in range(i + 1, len(world) - 1):
+            if is_node(world, ii, j):
+                edges[node_id].append([nodes.index([ii, j]), ii - i, "v"])
+                break
+            elif world[ii][j] == "#":
+                break
+        for jj in range(j - 1, 0, -1):
+            if is_node(world, i, jj):
+                edges[node_id].append([nodes.index([i, jj]), j - jj, "<"])
+                break
+            elif world[i][jj] == "#":
+                break
+        for jj in range(j + 1, len(world[0]) - 1):
+            if is_node(world, i, jj):
+                edges[node_id].append([nodes.index([i, jj]), jj - j, ">"])
+                break
+            elif world[i][jj] == "#":
+                break
+
+    return nodes, edges, e_id, s_id
+
+def todo_value(t):
+    return t[0]
+
+def turn_value(a, b):
+    if a == b: # same direction, no cost
+        return 0
+    elif (a in ["<", ">"] and b in ["<", ">"]) \
+        or(a in ["^", "v"] and b in ["^", "v"]): # u-turn
+        return -1
+    else: # 90 deg turn
+        return 1000
+
 world, e_ij, s_ij = read_data()
-print(f"{e_ij}")
-print(f"{s_ij}")
-for l in world:
-    for c in l:
-        print(f"{c}", end="")
-    print("")
-nodes, e_id, s_id = make_graph(world, e_ij, s_ij)
-for i in range(len(nodes)):
-    print(f"{i: 3d} - {nodes[i]}\t", end="")
-    if i > 0 and i % 8 == 0:
-        print("")
-print(f"{e_id=}")
-print(f"{s_id=}")
-edges = find_edges(world, nodes)
-print(f"{edges=}")
+nodes, edges, e_id, s_id = make_graph(world, e_ij, s_ij)
 
-r = 0
-print(f"{r=}")
+finito = {}
+todo = [[0, s_id, ">"]]
+# O : score
+# 1 : node_id
+# 2 : dir
+# 3 : prev id
+
+while len(todo) != 0 :
+    candidate = todo.pop(0)
+    for edge in edges[candidate[1]]:
+        if (edge[0], edge[2]) in finito.keys():
+            continue
+        neighbour = nodes[edge[0]]
+        t = turn_value(candidate[2], edge[2])
+        if t == -1:
+            continue
+        new_score = candidate[0] + t + edge[1]
+        found = False
+        for i in range(len(todo)):
+            if todo[i][1] == edge[0] and todo[i][2] == edge[2]:
+                found == True
+                if todo[i][0] > new_score:
+                    todo[i][0] = new_score
+        if not found:
+            todo.append([new_score, edge[0], edge[2]])
+
+    finito[(candidate[1], candidate[2])] = candidate[0]
+    todo.sort(key=todo_value)
+
+values = [] 
+for d in ["<", ">", "^", "v"]:
+    if (e_id, d) in finito.keys():
+        values.append(finito[(e_id, d)])
+print(f"{values=}:{min(values)=}")
+
