@@ -7,7 +7,7 @@ def read_data():
     world = []
     e = [0, 0]
     s = [0, 0]
-    with open("./data1", 'r') as fp:
+    with open("./data2", 'r') as fp:
         i = 0
         for line in fp.readlines():
             row = []
@@ -28,7 +28,7 @@ def is_node(world, i, j):
             or (world[i - 1][j] != '#' and world[i][j + 1] != '#') \
             or (world[i + 1][j] != '#' and world[i][j - 1] != '#') \
             or (world[i + 1][j] != '#' and world[i][j + 1] != '#') \
-            or ([world[i - 1][j], world[i + 1][j], world[i][j - 1], world[i][j + 1]].count("3") == 0) \
+            or ([world[i - 1][j], world[i + 1][j], world[i][j - 1], world[i][j + 1]].count("#") == 3) \
         )
 
 def make_graph(world, e_ij, s_ij):
@@ -93,11 +93,11 @@ world, e_ij, s_ij = read_data()
 nodes, edges, e_id, s_id = make_graph(world, e_ij, s_ij)
 
 finito = {}
-todo = [[0, s_id, ">"]]
+todo = [[0, s_id, ">", []]]
 # O : score
 # 1 : node_id
 # 2 : dir
-# 3 : prev id
+# 3 : prev ids
 
 while len(todo) != 0 :
     candidate = todo.pop(0)
@@ -115,15 +115,24 @@ while len(todo) != 0 :
                 found == True
                 if todo[i][0] > new_score:
                     todo[i][0] = new_score
-        if not found:
-            todo.append([new_score, edge[0], edge[2]])
+                    todo[i][3] = [candidate[1]]
+                elif todo[i][0] == new_score:
+                    todo[i][3].append(candidate[1])
 
-    finito[(candidate[1], candidate[2])] = candidate[0]
+        if not found:
+            todo.append([new_score, edge[0], edge[2], [candidate[1]]])
+
+    finito[(candidate[1], candidate[2])] = (candidate[0], candidate[3])
     todo.sort(key=todo_value)
 
-values = [] 
-for d in ["<", ">", "^", "v"]:
-    if (e_id, d) in finito.keys():
-        values.append(finito[(e_id, d)])
-print(f"{values=}:{min(values)=}")
+node_ids = [e_id]
+print(f"{node_ids=}")
+while len(node_ids) > 0:
+    node_id = node_ids.pop()
+    values = [] 
+    for d in ["<", ">", "^", "v"]:
+        if (e_id, d) in finito.keys():
+            values.append(finito[(e_id, d)])
+    print(f"{values=}:{min(values)=} {min(values)[1]}")
+    # node_ids += min(values)[1]
 
