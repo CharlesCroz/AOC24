@@ -1,7 +1,8 @@
-def read_data():
+import sys
+
+def read_data(file):
     regs = {}
-    prog = []
-    with open("./data1", 'r') as fp:
+    with open(file, 'r') as fp:
         lines = fp.readlines()
         print(f"{lines=}")
         regs['A'] = int(lines[0].strip().split(": ")[1])
@@ -61,7 +62,7 @@ def getins(code):
     return (adv, bxl, bst, jnz, bxc, out, bdv, cdv)[code]
     
 
-regs, mem = read_data()
+regs, mem = read_data(sys.argv[1])
 print(f"{regs=}")
 print(f"{mem=}")
 pc = [0]

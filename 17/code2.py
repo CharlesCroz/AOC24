@@ -1,14 +1,13 @@
-def read_data():
+import sys
+
+def read_data(file):
     regs = {}
-    prog = []
-    with open("./data1", 'r') as fp:
+    with open(file, 'r') as fp:
         lines = fp.readlines()
-        print(f"{lines=}")
         regs['A'] = int(lines[0].strip().split(": ")[1])
         regs['B'] = int(lines[1].strip().split(": ")[1])
         regs['c'] = int(lines[2].strip().split(": ")[1])
         mem = [int(x) for x in lines[4].strip().split(': ')[1].split(',')]
-
     return regs, mem
 
 def combo(regs, operand):
@@ -61,7 +60,7 @@ def getins(code):
     return (adv, bxl, bst, jnz, bxc, out, bdv, cdv)[code]
     
 
-_, mem = read_data()
+_, mem = read_data(sys.argv[1])
 print(f"{mem=}")
 
 def test_val(mem, a, target):
@@ -70,21 +69,22 @@ def test_val(mem, a, target):
     stdout = []
 
     while pc[0] < len(mem):
-        if pc[0] == 0:
-            print(f"{a=} - ", end="")
         getins(mem[pc[0]])(regs, mem[pc[0] + 1], pc, stdout)
-    
-    print(f"\t{a=}\t{stdout=}")
 
     return stdout == target
 
-a = 0
-for i in range(3):
-    print(f"Testing vs {mem[-1 * (i + 1):]}")
-    for j in range(1,8):
-        val = j * (8 ** i) + a
-        if test_val(mem, val, mem[-1 * (i + 1):]):
-            a = val
-            print(f"{a=}")
-            break
+possible_as = [0]
+for i in range(16):
+    print(f"Testing from {possible_as=} vs {mem[-1 * (i + 1):]}")
+    new_as = []
+    for a in possible_as:
+        for j in range(0,9):
+            val = a * 8 + j
+            if test_val(mem, val, mem[-1 * (i + 1):]):
+                new_as.append(val)
+                # print(f"{val=}")
+    possible_as = new_as
+
+print(f"{min(possible_as)=}")
+print(f"{possible_as=}")
 

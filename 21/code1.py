@@ -1,4 +1,5 @@
 import sys
+import functools
 
 def read_data(file):
     codes = []
@@ -8,9 +9,10 @@ def read_data(file):
     return codes
 
 codes = read_data(sys.argv[1])
-numpad = ["789", "456", "123", " 0A"]
-arrowpad = [" ^A", "<v>"]
+numpad = ("789", "456", "123", " 0A")
+arrowpad = (" ^A", "<v>")
 
+@functools.cache
 def find_coords(e, pad):
     for i in range(len(pad)):
         for j in range(len(pad[i])):
@@ -18,6 +20,7 @@ def find_coords(e, pad):
                 return i, j
     raise ValueError
 
+@functools.cache
 def get_path(a, b, pad):
     i0, j0 = find_coords(a, pad)
     i1, j1 = find_coords(b, pad)
@@ -46,61 +49,47 @@ def get_path(a, b, pad):
             result.append(dj_char + di_char)
     return result
 
-print(f"{codes=}")
 
 r = 0
 for code in codes:
-    paths_r0 = [""]
+    print(f"{code=}")
+    paths = [""]
     r0_at = "A"
     for c in code:
-        new_paths_r0 = []
+        new_paths = []
         tmp = get_path(r0_at, c, numpad)
-        for deb in paths_r0:
-            # if len(deb) > 0 and len(tmp) > 1 and deb[-2] == tmp[0]:
-            #     new_paths_r0.append(deb + tmp[0] + "A")
-            # elif len(deb) > 0 and len(tmp) > 1 and deb[-2] == tmp[1]:
-            #     new_paths_r0.append(deb + tmp[1] + "A")
-            # else:
+        for deb in paths:
             for end in tmp:
-                new_paths_r0.append(deb + end + "A")
-        paths_r0 = new_paths_r0
+                new_paths.append(deb + end + "A")
+        paths = new_paths
         r0_at = c
-    print(f"{paths_r0}")
+    # print(f"{paths}")
+    # print(f"{len(paths)=}")
 
-    all_paths_r1 = []
-    for path_r0 in paths_r0:
-        paths_r1 = [""]
-        r1_at = "A"
-        for c in path_r0:
-            new_paths_r1 = []
-            tmp = get_path(r1_at, c, arrowpad)
-            for deb in paths_r1:
-                for end in tmp:
-                    new_paths_r1.append(deb + end + "A")
-            paths_r1 = new_paths_r1
-            r1_at = c
-        all_paths_r1 += paths_r1
-    # print(f"{all_paths_r1}")
-
-    all_paths_r2 = []
-    for path_r1 in paths_r1:
-        paths_r2 = [""]
-        r2_at = "A"
-        for c in path_r1:
-            new_paths_r2 = []
-            tmp = get_path(r2_at, c, arrowpad)
-            for deb in paths_r2:
-                for end in tmp:
-                    new_paths_r2.append(deb + end + "A")
-            paths_r2 = new_paths_r2
-            r2_at = c
-        all_paths_r2 += paths_r2
-    # print(f"{all_paths_r2}")
+    for i in range(2):
+        new_paths = []
+        for path in paths:
+            paths_rx = [""]
+            rx_at = "A"
+            for c in path:
+                new_paths_r1 = []
+                tmp = get_path(rx_at, c, arrowpad)
+                for deb in paths_rx:
+                    for end in tmp:
+                        new_paths_r1.append(deb + end + "A")
+                paths_rx = new_paths_r1
+                rx_at = c
+            new_paths += paths_rx
+        # print(f"{new_paths}")
+        d = min(map(len, new_paths))
+        paths = [p for p in new_paths if len(p) == d]
+        # print(f"{min(paths, key=len)}")
+        # print(f"{len(paths)=}")
 
     min_value = float('inf')
-    for path_r2 in paths_r2:
-        if len(path_r2) < min_value:
-            min_value = len(path_r2)
+    for path in paths:
+        if len(path) < min_value:
+            min_value = len(path)
     print(f"{min_value=}")
     print(f"{int(code[:-1])=}")
 
