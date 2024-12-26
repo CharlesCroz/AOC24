@@ -1,111 +1,153 @@
 import sys
+from copy import deepcopy
+from joblib import Parallel, delayed
+
+def XOR(a, b):
+    return a ^ b
+
+def OR(a, b):
+    return a | b
+
+def AND(a, b):
+    return a & b
 
 def read_data(file):
-    edges = {}
-    nodes_lit = []
-    with open(file, 'r') as fp:
-        for line in fp.readlines():
-            edge = line.strip().split("-")
-            if edge[0] not in nodes_lit:
-                nodes_lit.append(edge[0])
-            if edge[1] not in nodes_lit:
-                nodes_lit.append(edge[1])
-            i = nodes_lit.index(edge[0])
-            j = nodes_lit.index(edge[1])
-            if i in edges.keys():
-                edges[i].append(j)
-            else:
-                edges[i] = [j]
-            if j in edges.keys():
-                edges[j].append(i)
-            else:
-                edges[j] = [i]
-    return edges, tuple(nodes_lit)
+    regs = []
+    ops = []
+    with open(file) as fp:
+        lines = fp.readlines()
+    i = 0
+    while lines[i].strip() != "":
+        t = lines[i].strip().split(": ")
+        regs.append((t[0], int(t[1])))
+        i += 1
+    i += 1
+    while i < len(lines):
+        t = lines[i].strip().split(" ")
+        f = {'XOR':XOR, 'AND':AND, 'OR':OR}[t[1]]
+        ops.append([t[0], t[2], t[4], f])
+        i += 1
+    return regs, ops
 
-edges, nodes_lit = read_data(sys.argv[1])
-nodes = [x for x in range(len(nodes_lit))]
-for e in edges.keys():
-    edges[e] = tuple(edges[e])
+regs, ops = read_data(sys.argv[1])
 
-# print(f"{edges=}")
-# print(f"{len(nodes)=}")
+def update(ops, reg, val):
+    for op in ops:
+        if op[0] == reg:
+            op[0] = val
+        if op[1] == reg:
+            op[1] = val
 
-NEIGHBORS = edges
-MIN_SIZE = 3
-CLIQUES = []
-def bronker_bosch2(clique, candidates, excluded):
-    '''Bron–Kerbosch algorithm with pivot'''
-    if not candidates and not excluded:
-        if len(clique) >= MIN_SIZE:
-           CLIQUES.append(clique)
+def print_formula(ops, reg, endline=False):
+    if endline:
+        print(f"{reg} = ", end="")
+    if reg[0] in 'xyz':
+        print(reg, end="")
+    for op in ops:
+        if op[2] == reg:
+            print("(", end="")
+            print_formula(ops, op[0])
+            print(f" {op[3].__name__} ", end="")
+            print_formula(ops, op[1])
+            print(")", end="")
+    if endline:
+        print("")
+
+
+# for i in range(46):
+#     print_formula(ops, f"z{i:02}", endline=True)
+
+# print_formula(ops, "hqh", endline=True)
+
+def compute(x, y, ops):
+    regs = []
+
+    for i in range(45):
+        update(ops, f"x{i:02}", x % 2)
+        x //= 2
+    for i in range(45):
+        update(ops, f"y{i:02}", y % 2)
+        y //= 2
+
+    while len(ops) > 0:
+        found = False
+        for i in range(len(ops)):
+            op = ops[i]
+            if isinstance(op[0], int) and isinstance(op[1], int):
+                reg = op[2]
+                val = op[3](op[0], op[1])
+                regs.append((reg, val))
+                ops.pop(i)
+                update(ops, reg, val)
+                found = True
+                break
+        if not found:
+            return -1
+    
+    regs.sort(reverse=True)
+    r = 0
+    for reg, val in regs:
+        if reg[0] == "z":
+            r = 2 * r + val
+    return r
+
+s = set()
+for op in ops:
+    s.add(op[2])
+candidates = tuple(s)
+
+# print(f"{candidates=}")
+
+def swap(ops, i, j):
+    tmp = ops[i][2] 
+    ops[i][2] = ops[j][2]
+    ops[j][2] = tmp
+
+swap(ops, 155 - 92, 190 - 92)
+swap(ops, 244 - 92, 170 - 92)
+swap(ops, 297 - 92, 301 - 92)
+
+# x = (2 ** 45) - 1
+# x = 0
+# for i in range(45):
+#     y = 2 ** i - 1
+#     z = compute(x, y, deepcopy(ops))
+#     print(f"{z:046b}")
+
+# for i in range(len(candidates)):
+#     z = compute(x, 123456, swap(ops, target, i))
+#     expected_z = x + 123456
+#     if z != -1 and  z % 2 ** 30 == expected_z % 2 ** 30:
+#         print(f"{(i, ops[target][2], ops[i][2])=} : {z:046b}")
+
+# for k in range(len(candidates)):
+def test_k(k, ops):
+    x = (2 ** 44) - 1
+    for l in range(len(candidates)):
+        swapped = deepcopy(ops)
+        swap(swapped, k, l)
+        is_ok = True
+        for y in [0, 1]:
+            z = compute(x, y, deepcopy(swapped))
+            if z == -1 or x+y != z:
+                is_ok = False
+                break
+        if is_ok:
+            print(f"{(k, l)=}")
+
+test_k(186-92, ops)
+# results = Parallel(n_jobs=8)(delayed(test_from_k)(k, ops) for k in range(len(candidates)))
+
+def print_formula_2(ops, reg, level=0, max_rec=10):
+    if level > max_rec:
         return
- 
-    pivot = pick_random(candidates) or pick_random(excluded)
-    for v in list(candidates.difference(NEIGHBORS[pivot])):
-        new_candidates = candidates.intersection(NEIGHBORS[v])
-        new_excluded = excluded.intersection(NEIGHBORS[v])
-        bronker_bosch2(clique + [v], new_candidates, new_excluded)
-        candidates.remove(v)
-        excluded.add(v)
+    spaces = '| ' * level
+    if reg[0] in 'xy':
+        return
+    for op in ops:
+        if op[2] == reg:
+            print(f"{spaces}{op[2]} = {op[0]} {op[3].__name__} {op[1]}")
+            print_formula_2(ops, op[0], level + 1, max_rec)
+            print_formula_2(ops, op[1], level + 1, max_rec)
 
-
-def pick_random(s):
-    if s:
-        elem = s.pop()
-        s.add(elem)
-        return elem
-    return False
-
-bronker_bosch2([], set(range(len(nodes))), set())
-
-maxl = 0
-maxc = []
-for clique in CLIQUES:
-    if len(clique) > maxl:
-        maxl = len(clique)
-        maxc = clique
-
-print(f"{maxc=}")
-maxc.sort()
-code = [nodes_lit[i] for i in maxc]
-code.sort()
-print(",".join(code))
-# # counts = [len(edges[e]) for e in nodes]
-
-# print(f"{min(counts)=}")
-
-# cycles = set({})
-# for node in nodes:
-#     if node[0] != "t":
-#         continue
-#     neigbours = []
-#     for a, b in edges:
-#         if node == a:
-#             neigbours.append(b)
-#         elif node == b:
-#             neigbours.append(a)
-#     for i in range(len(neigbours)):
-#         for j in range(i + 1, len(neigbours)):
-#             if connects(neigbours[i], neigbours[j], edges):
-#                 tmp = [node, neigbours[j], neigbours[i]]
-#                 tmp.sort()
-#                 cycles.add(tuple(tmp))
-# print(f"{cycles=}")
-
-# new_cycles = set({})
-# for cycle in cycles:
-#     # cycle = next(iter(cycles))
-#     for node in nodes:
-#         if node in cycle:
-#             continue
-#         fully_connects = True
-#         for n in cycle:
-#             if not connects(node, n, edges):
-#                 fully_connects = False
-#         if fully_connects:
-#             tmp = list(cycle) + [node]
-#             tmp.sort()
-#             new_cycles.add(tuple(tmp))
-
-# print(f"{new_cycles=}")
-# print(f"{len(new_cycles)=}")
+print_formula_2(ops, sys.argv[3], max_rec=int(sys.argv[2]))

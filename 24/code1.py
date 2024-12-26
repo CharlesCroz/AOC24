@@ -50,8 +50,6 @@ while len(ops) > 0:
             update(ops, reg, val)
             break
 
-# print(f"{ops=}")
-# print(f"{regs=}")
 regs.sort(reverse=True)
 r = 0
 for reg, val in regs:

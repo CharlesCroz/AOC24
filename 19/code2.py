@@ -1,4 +1,5 @@
 import sys
+import functools
 
 def read_data(file):
     towels = None
@@ -8,38 +9,41 @@ def read_data(file):
         towels = lines[0].strip().split(", ")
         for line in lines[2:]:
             patterns.append(line.strip())
-    return towels, patterns
-
-def recipes(towels, pattern):
-    if pattern == "":
-        return [[]]
-    s = []
-    for towel in towels:
-        if pattern[0:len(towel)] == towel:
-            remains = recipes(towels, pattern[len(towel):])
-            for remain in remains:
-                s.append([towel] + remain.copy())
-    return s
+    return tuple(towels), patterns
 
 towels, patterns = read_data(sys.argv[1])
-towels_tree = []
-print(f"{len(towels)=}")
-for towel in towels:
-    tmp = recipes(towels, towel)
-    tmp.remove([towel])
-    towels_tree.append((towel, tmp, len(tmp) + 1))
 
-towels_tree.sort(key=lambda x:len(x[0]))
+longest_towel = len(towels[0])
+print(f"{towels}")
 
-for towel in towels_tree:
-    print(f"{towel[0]=}")
-# print(f"{patterns=}")
+@functools.cache
+def count_recipes(pattern):
+    if len(pattern) == 0:
+        return 1
+    if len(pattern) == 1:
+        for towel in towels:
+            if pattern == towel:
+                return 1
+        return 0
+    
+    res = 0
+    midpoint = len(pattern) // 2
+    # Compute overlaps
+    for towel in towels:
+        l = len(towel)
+        if l == 1:
+            continue
+        for i in range(max(0, midpoint - l + 1), midpoint):
+            if pattern[i:i+l] == towel:
+                res += count_recipes(pattern[0:i]) * count_recipes(pattern[i+l:])
 
-# r = 0
-# # can_be_done(towels, patterns[0])
-# for pattern in patterns:
-#     t = can_be_done(towels, pattern)
-#     print(f"can_be_done(towels, pattern)={t}")
-#     r += t
+    res += count_recipes(pattern[0:midpoint]) * count_recipes(pattern[midpoint:])
+    return res
 
-# print(f"{r=}")
+r = 0
+for pattern in patterns:
+    t = count_recipes(pattern)
+    print(f"{pattern}\t{t}")
+    r += t
+print(f"{r=}")
+print(f"{count_recipes.cache_info()}")
