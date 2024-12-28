@@ -84,15 +84,12 @@ for code in codes:
         d = min(map(len, new_paths))
         paths = [p for p in new_paths if len(p) == d]
         # print(f"{min(paths, key=len)}")
+        # print(f"{min(map(len, paths))}")
         # print(f"{len(paths)=}")
 
-    min_value = float('inf')
-    for path in paths:
-        if len(path) < min_value:
-            min_value = len(path)
-    print(f"{min_value=}")
+    print(f"{min(map(len, paths))=}")
     print(f"{int(code[:-1])=}")
 
-    r += min_value * int(code[:-1])
+    r += min(map(len, paths)) * int(code[:-1])
 
 print(f"{r=}")

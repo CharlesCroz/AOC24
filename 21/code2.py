@@ -9,8 +9,14 @@ def read_data(file):
     return codes
 
 codes = read_data(sys.argv[1])
-numpad = ("789", "456", "123", " 0A")
-arrowpad = (" ^A", "<v>")
+numpad = (
+    "789",
+    "456",
+    "123",
+    " 0A" )
+arrowpad = (
+    " ^A", 
+    "<v>")
 
 @functools.cache
 def find_coords(e, pad):
@@ -50,33 +56,21 @@ def get_moves(a, b, pad):
     return result
 
 @functools.cache
-def best_sequences(this_from, this_to, this_layer):
+def best_lenght(this_from, this_to, this_layer):
     sequences = get_moves(this_from, this_to, arrowpad)
     if this_layer == 0:
-        return sequences
+        return min(map(len, sequences))
     else:
         results = []
         for sequence in sequences:
             sequence = "A" + sequence
-            partial_rewritten_sequence = [""]
-            # print(f"Rewritting {sequence=}")
+            score = 0
             for i in range(len(sequence) - 1):
-                tmp = []
-                elts = best_sequences(sequence[i], sequence[i+1], this_layer - 1)
-                # print(f"\t{(sequence[i], sequence[i+1], this_layer - 1)}")
-                # print(f"\t{elts}")
-                for x in partial_rewritten_sequence:
-                    for y in elts:
-                        tmp.append(x + y)
-                partial_rewritten_sequence = tmp
-            results += partial_rewritten_sequence
-        min_len = min(map(len, results))
-        return [x for x in results if len(x) == min_len]
+                score += best_lenght(sequence[i], sequence[i+1], this_layer - 1)
+            results.append(score)
+        return min(results)
 
-for i in range(10):
-    for a in "<>^vA":
-        for b in "<>^vA":
-            t = best_sequences(a, b, i)
+depth = int(sys.argv[2])
 
 r=0
 for code in codes:
@@ -93,21 +87,16 @@ for code in codes:
         r0_at = c
     # print(f"{paths}")
 
-    l = 2
-    new_paths = []
+    scores = []
     for path in paths:
-        tmp = [""]
+        # print(f"{path}")
+        t = 0
         for i in range(len(path) - 1):
-            new_tmp = []
-            # print(f"{(path[i], path[i+1], l)}")
-            t = best_sequences(path[i], path[i+1], l)
-            # print(f"{t=}")
-            for x in tmp:
-                for y in t:
-                    new_tmp.append(x + y)
-            tmp = new_tmp
-        new_paths += tmp
-    # print(f"{new_paths}")
-    print(min(map(len, new_paths)))
+            t += best_lenght(path[i], path[i+1], depth)
+            # print(f"{(path[i], path[i+1], t)=}")
+        print(f"{path} : {t}")
+        scores.append(t)
+    r += min(scores) * int(code[:-1])
+    # print(f"{min(scores)=}")
 
 print(f"{r=}")
